@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 
-from cytoolz import compose, curry
+from cytoolz import compose, curry, groupby
 from cytoolz.curried import filter, map, reduce
 
 
@@ -39,52 +39,43 @@ class Page:
     def __lt__(self, other):
         return self.n in other.r
 
-    def __gt__(self, other):
-        return other.n in self.r
-
     def __eq__(self, other):
         return self.n == other.n
 
+    def unwrap(self):
+        return self.n
 
-def order_updates(updates):
+
+def take_middle(update):
+    return update[(-(len(update) // -2)) - 1]
+
+
+def pt1(updates):
     return compose(
-        tuple,
-        map(lambda u: u.n),
-        sorted,
-        map(lambda i: Page(i, L_rules.get(i, set()), R_rules.get(i, set()))),
+        sum,
+        map(compose(Page.unwrap, take_middle)),
+        filter(lambda u: u == compose(tuple, sorted)(u)),
     )(updates)
 
 
-def is_ordered(updates):
-    return updates == order_updates(updates)
+def pt2(updates):
+    return compose(
+        sum,
+        map(compose(Page.unwrap, take_middle, compose(tuple, sorted))),
+        filter(lambda u: not u == compose(tuple, sorted)(u)),
+    )(updates)
 
 
 def main(file_name):
     rules = lines_as_records(file_name)("|")
-    updates = lines_as_records(file_name)(",")
-
-    global L_rules
     L_rules = acc_rules(rules)
-
-    global R_rules
-    R_rules = acc_rules(map(lambda t: t[::-1], rules))
-
-    print(
-        "pt1",
-        compose(sum, map(lambda l: l[(-(len(l) // -2)) - 1]), filter(is_ordered))(
-            updates
-        ),
+    R_rules = acc_rules(map(lambda t: t[::-1], rules))  # flip rules to get R
+    int_to_page = lambda i: Page(i, L_rules.get(i, set()), R_rules.get(i, set()))
+    updates = lambda: map(lambda update: compose(tuple, map(int_to_page))(update))(
+        lines_as_records(file_name)(",")
     )
-
-    print(
-        "pt2",
-        compose(
-            sum,
-            map(lambda l: l[(-(len(l) // -2)) - 1]),
-            map(order_updates),
-            filter(lambda u: not is_ordered(u)),
-        )(updates),
-    )
+    print(f"pt1: {pt1(updates())}")
+    print(f"pt2: {pt2(updates())}")
 
 
 if __name__ == "__main__":
