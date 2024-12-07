@@ -20,7 +20,7 @@ def find_guard(grid):
         )(Guard.possible_faces.keys())
 
     return compose(
-        next,
+        lambda it: next(it, None),
         filter(lambda t: t[1]),
         map(lambda t: (t[0], find_guard_on_line(t[1]))),
         enumerate,
@@ -37,29 +37,48 @@ def rotate_grid(grid):
     )(grid)
 
 
-def render(grid):
-    print(*grid, sep="\n")
-    # print([Grid((">",) * len(grids[0].grid)), *grids])
-    # print(
-    #     *compose(map("\t".join), zip, map(lambda g: g.grid))(
-    #         *[Grid((">",) * len(grids[0].grid)), *grids]
-    #     ),
-    #     sep="\n"
-    # )
-
-
 def walk_up(grid):
     curr_i, curr_j = grid.guard.pos
     f = grid.guard.is_facing
     old_cols = grid.cols()
     new_col = fill_x(old_cols[curr_j][::-1].replace(f, "@"))[::-1].replace("@", f)
-    return (*old_cols[:curr_j], new_col, *old_cols[curr_j + 1 :])
+    return Grid(Grid((*old_cols[:curr_j], new_col, *old_cols[curr_j + 1 :])).cols())
+
+
+def walk_down(grid):
+    curr_i, curr_j = grid.guard.pos
+    f = grid.guard.is_facing
+    old_cols = grid.cols()
+    new_col = fill_x(old_cols[curr_j].replace(f, "@")).replace("@", f)
+    return Grid(Grid((*old_cols[:curr_j], new_col, *old_cols[curr_j + 1 :])).cols())
+
+
+def walk_right(grid):
+    curr_i, curr_j = grid.guard.pos
+    f = grid.guard.is_facing
+    old_rows = grid.grid
+    new_row = fill_x(old_rows[curr_i].replace(f, "@")).replace("@", f)
+    return Grid((*old_rows[:curr_i], new_row, *old_rows[curr_i + 1 :]))
+
+
+def walk_left(grid):
+    curr_i, curr_j = grid.guard.pos
+    f = grid.guard.is_facing
+    old_rows = grid.grid
+    new_row = fill_x(old_rows[curr_i][::-1].replace(f, "@"))[::-1].replace("@", f)
+    return Grid((*old_rows[:curr_i], new_row, *old_rows[curr_i + 1 :]))
 
 
 def walk(grid):
     match grid.guard.is_facing:
         case "^":
-            return walk_up(grid)
+            return walk_up(grid).turn_guard()
+        case "v":
+            return walk_down(grid).turn_guard()
+        case ">":
+            return walk_right(grid).turn_guard()
+        case "<":
+            return walk_left(grid).turn_guard()
 
 
 def fill_x(s):
@@ -69,14 +88,13 @@ def fill_x(s):
         )
 
     guard = s.find("@")
-    obst = len(s[:guard]) + s[guard:].find("#")
+    obst_i = s[guard:].find("#")
     l = s[:guard]
+    if not obst_i > -1:
+        return l + replace_with_x(s[guard])
+    obst = len(s[:guard]) + obst_i
     r = s[obst + 1 :]
     return l + replace_with_x(s[guard : obst + 1]) + r
-
-
-def rotate_n(grid, n):
-    return reduce(lambda grid, _: rotate_grid(grid), range(n), grid)
 
 
 # ^ @ > @ v @ < @ ^
@@ -96,7 +114,7 @@ class Guard:
                 pos=(i, j),
                 is_facing=grid[i][j],
             )
-        )(*find_guard(grid))
+        )(*(find_guard(grid) or (-1, -1)))
 
 
 @dataclass
@@ -117,10 +135,41 @@ class Grid:
             range,
         )(len(self.grid[0]))
 
+    def turn_guard(self):
+        if self.guard.pos == (-1, -1):
+            return self
+
+        return type(self)(
+            tuple(
+                (
+                    *self.grid[: self.guard.pos[0]],
+                    self.grid[self.guard.pos[0]].replace(
+                        self.guard.is_facing,
+                        self.guard.possible_faces[self.guard.is_facing],
+                    ),
+                    *self.grid[self.guard.pos[0] + 1 :],
+                )
+            )
+        )
+
+    def __str__(self):
+        return "\n".join(self.grid)
+
+    def __add__(self, other):
+        return type(self)(compose(tuple, map("\t".join))(zip(self.grid, other.grid)))
+
 
 def main(file_name):
     g = Grid.from_file(file_name)
-    print(walk(g))
+
+    try:
+        while find_guard(g.grid):
+            g = walk(g)
+    except TypeError:
+        pass
+
+    print(g)
+    print(compose(sum, map(lambda l: l.count("X")))(g.grid))
 
 
 if __name__ == "__main__":
