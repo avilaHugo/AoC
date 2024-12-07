@@ -28,4 +28,3 @@ pos() { echo '${a[$((i'"${1}"'))]:$((j'"${2}"')):1}'; }
         eval echo "$(pos -1 -1)A$(pos +1 +1)@$(pos +1 -1)A$(pos -1 +1)" 
     done < <(seeds $1) 
 ) | grep -Pc '(SAM|MAS)@(SAM|MAS)'
-
