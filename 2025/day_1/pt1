@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+main() {
+    # args
+    local -r input_file="${1}"; shift
+
+    #  vars
+    local -ar dial=({0..99})
+    local -i curr=50
+    local -i turns=0
+    local direction=""
+    local -i stop_on_zero_counter=0
+
+    while IFS='' read -r LINE;do
+	direction="${LINE:0:1}"
+	turns="${LINE:1}"
+
+	case "${direction}" in
+	    L)
+		while ((turns > 0));do
+
+		    (( curr-- ))
+		    if (( curr < 0 ));then
+			curr=99
+		    fi
+
+		    (( turns-- ))
+		done
+
+		;;
+	    
+	    R)
+		while ((turns > 0));do
+
+		    (( curr++ ))
+		    if (( curr > 99 ));then
+			curr=0
+		    fi
+
+		    (( turns-- ))
+		done
+
+		;;
+
+	    *)
+		printf 'invalid direction: "%s"\n' "${direction}" >2
+		exit 1
+		;;
+	esac
+
+	if (( curr == 0 ));then
+	    ((stop_on_zero_counter++))
+	fi
+    done < "${input_file}"
+
+
+    echo "Count of times dial stop on 0: ${stop_on_zero_counter}"
+
+}
+
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main "${@}"
+
