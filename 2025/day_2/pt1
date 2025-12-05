@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+main() {
+    # args
+    local -r input_file="${1}"; shift
+
+    cat "${input_file}" \
+    	| tr ',' '\n' \
+	| tr '-' ' ' \
+	| xargs -I'{}' bash -c 'seq {}' \
+	| grep -P '^(\d+)(\1)$' \
+	| awk '{c+=$0} END {print c}'
+}
+
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main "${@}"
