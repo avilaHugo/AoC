@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+main() {
+    # args
+    local -r input_file="${1}"; shift
+    local -i result=0
+
+    while IFS='' read -r LINE;do
+	local -i lb=0
+	local -i rb=0
+	local -i curr=0
+	local -i max=0
+
+	for ((i=0; i < "${#LINE}"; i++));do
+	    lb="${LINE:$i:1}"
+	    for ((j=((i+1)); j < "${#LINE}"; j++));do
+		rb="${LINE:$j:1}"
+		curr="${lb}${rb}"
+		if (( curr > max));then
+		    (( max=curr ))
+		fi
+	    done
+	done
+	((result+=max))
+
+    done < "${input_file}"
+    echo "${result}"
+
+}
+
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main "${@}"

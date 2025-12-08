@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+find_biggest_joltage () {
+    local -ri size="${1}"; shift
+    local -r result="${1}"; shift
+    local -r rest="${1}"; shift
+
+    local -i max=0
+    local -i curr_max_pos=0
+
+    if ((size == 0));then
+	echo "${size}" "${result}" "${rest}"
+	return
+    fi
+    
+    for ((i=0; i < $(( ${#rest} - (size - 1) )); i++));do
+	if (( "${rest:$i:1}" > max ));then
+	    ((max="${rest:$i:1}"))
+	    ((curr_max_pos=i))
+	fi
+    done
+
+    find_biggest_joltage \
+	"$((size - 1))" \
+	"${result}${max}" \
+	"${rest:((curr_max_pos+1))}"
+
+}
+
+main() {
+    # args
+    local -r input_file="${1}"; shift
+
+    local -i size=12
+
+    while IFS='' read -r LINE;do
+	find_biggest_joltage "${size}" "" "${LINE}" | cut -d ' ' -f 2 
+    done < "${input_file}" \
+	 | awk '{sum+=$0} END {print sum}'
+}
+
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main "${@}"
